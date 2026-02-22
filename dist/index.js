@@ -34,11 +34,20 @@ export class ServiceBroker extends EventEmitter {
             error: err => this.emit('error', new Error('Fail to connect to service broker', { cause: err }))
         }), !opts.retryConfig ? rxjs.identity : rxjs.retry(opts.retryConfig), rxjs.exhaustMap(conn => {
             if (this.providers.size) {
-                conn.send(JSON.stringify({
-                    authToken: this.opts.authToken,
-                    type: "SbAdvertiseRequest",
-                }) + '\n' +
-                    JSON.stringify(Array.from(this.providers.values()).filter(x => x.advertise).map(x => x.service)));
+                if (process.env.OLD_ADVERTISE) {
+                    conn.send(JSON.stringify({
+                        authToken: this.opts.authToken,
+                        type: "SbAdvertiseRequest",
+                        services: Array.from(this.providers.values()).filter(x => x.advertise).map(x => x.service)
+                    }));
+                }
+                else {
+                    conn.send(JSON.stringify({
+                        authToken: this.opts.authToken,
+                        type: "SbAdvertiseRequest",
+                    }) + '\n' +
+                        JSON.stringify(Array.from(this.providers.values()).filter(x => x.advertise).map(x => x.service)));
+                }
             }
             for (const endpointId of this.waitPromises.keys()) {
                 conn.send(JSON.stringify({
