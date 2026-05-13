@@ -404,7 +404,8 @@ export class ServiceBroker extends EventEmitter<EventMap> {
               rxjs.startWith({ header: first.header, payload: stream })
             )
           }),
-          rxjs.finalize(() => this.pending.delete(id))
+          rxjs.finalize(() => this.pending.delete(id)),
+          rxjs.share({ resetOnRefCountZero: false })
         )
       )
     } catch (err) {

@@ -301,7 +301,7 @@ export class ServiceBroker extends EventEmitter {
                 return subject.pipe(rxjs.timeout(30_000), rxjs.takeWhile(res => !!res.header.part, true), rxjs.startWith(first), rxjs.concatMap(res => rxjs.iif(() => res.payload != undefined, new rxjs.Observable(subscriber => {
                     stream.write(res.payload, err => err ? subscriber.error(err) : subscriber.complete());
                 }), rxjs.EMPTY)), rxjs.finalize(() => stream.end()), rxjs.startWith({ header: first.header, payload: stream }));
-            }), rxjs.finalize(() => this.pending.delete(id))));
+            }), rxjs.finalize(() => this.pending.delete(id)), rxjs.share({ resetOnRefCountZero: false })));
         }
         catch (err) {
             throw typeof err == 'string' ? new Error(err) : err;
