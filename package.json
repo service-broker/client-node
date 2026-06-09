@@ -1,6 +1,6 @@
 {
   "name": "@service-broker/client-node",
-  "version": "2.5.0",
+  "version": "2.6.4",
   "description": "Node ESM client library for interacting with a service broker",
   "type": "module",
   "main": "dist/index.js",
@@ -22,7 +22,7 @@
     "@service-broker/test-utils": "^1.0.5",
     "@types/node": "^24.3.0",
     "dotenv": "^17.2.1",
-    "typescript": "^5.9.2"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@service-broker/websocket": "^1.0.3"
