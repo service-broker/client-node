@@ -289,6 +289,10 @@ export class ServiceBroker extends EventEmitter {
         await this.send(Object.assign({}, msg.header, reservedFields, header), msg.payload);
     }
     async pendingResponse(id, timeout = 30_000) {
+        //capture the callstack of the request, the callstack at the time the error occurs
+        //is just the network packet receipt path and is not useful
+        //don't read .stack here, V8 only formats it when accessed (on the error path below)
+        const requestError = new Error();
         const subject = new rxjs.Subject();
         this.pending.set(id, subject);
         try {
@@ -304,7 +308,11 @@ export class ServiceBroker extends EventEmitter {
             }), rxjs.finalize(() => this.pending.delete(id)), rxjs.share({ resetOnRefCountZero: false })));
         }
         catch (err) {
-            throw typeof err == 'string' ? new Error(err) : err;
+            const error = err instanceof Error ? err : new Error(String(err));
+            const requestStack = requestError.stack?.split('\n').slice(2).join('\n');
+            if (requestStack)
+                error.stack = `${error.name}: ${error.message}\n${requestStack}`;
+            throw error;
         }
     }
     async publish(topic, text) {

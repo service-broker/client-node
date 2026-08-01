@@ -376,6 +376,10 @@ export class ServiceBroker extends EventEmitter<EventMap> {
   }
 
   private async pendingResponse(id: string, timeout = 30_000): Promise<Message> {
+    //capture the callstack of the request, the callstack at the time the error occurs
+    //is just the network packet receipt path and is not useful
+    //don't read .stack here, V8 only formats it when accessed (on the error path below)
+    const requestError = new Error()
     const subject = new rxjs.Subject<MessageWithHeader>()
     this.pending.set(id, subject)
     try {
@@ -409,7 +413,10 @@ export class ServiceBroker extends EventEmitter<EventMap> {
         )
       )
     } catch (err) {
-      throw typeof err == 'string' ? new Error(err) : err
+      const error = err instanceof Error ? err : new Error(String(err))
+      const requestStack = requestError.stack?.split('\n').slice(2).join('\n')
+      if (requestStack) error.stack = `${error.name}: ${error.message}\n${requestStack}`
+      throw error
     }
   }
 
