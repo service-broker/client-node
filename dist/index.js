@@ -83,8 +83,10 @@ export class ServiceBroker extends EventEmitter {
             throw new Error("Message is not a string or Buffer");
         if (msg.header.type == "SbEndpointWaitResponse")
             this.onEndpointWaitResponse(msg);
-        else if (msg.header.service)
-            this.onServiceRequest(msg);
+        else if (msg.header.service) {
+            this.onServiceRequest(msg)
+                .catch(err => this.emit('error', new Error('Fail to handle service request', { cause: err })));
+        }
         else
             this.onServiceResponse(msg);
     }
@@ -112,6 +114,8 @@ export class ServiceBroker extends EventEmitter {
                     id: msg.header.id,
                     type: "ServiceResponse",
                     error: err instanceof Error ? err.message : err
+                }).catch(sendErr => {
+                    this.emit('error', new Error('Fail to send error response', { cause: sendErr }));
                 });
             }
             else {
@@ -170,8 +174,9 @@ export class ServiceBroker extends EventEmitter {
             }
             else if (payload.pipe) {
                 const stream = this.packetizer(this.opts.streamingChunkSize || 64_000);
-                stream.on("data", data => this.send(Object.assign({}, header, { part: true }), data));
-                stream.on("end", () => this.send(header));
+                const onSendError = (err) => this.emit('error', new Error('Fail to send stream', { cause: err }));
+                stream.on("data", data => this.send(Object.assign({}, header, { part: true }), data).catch(onSendError));
+                stream.on("end", () => this.send(header).catch(onSendError));
                 payload.pipe(stream);
             }
             else
